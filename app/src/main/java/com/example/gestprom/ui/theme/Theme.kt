@@ -9,7 +9,26 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+// Colores personalizados de la aplicación
+object AppColors {
+    val BackgroundPrimary = Color(0xFF01102C)
+    val ButtonPrimary = Color(0xFF0945D2)
+    val CardBackground = Color(0xFFE5E5E5)
+    val CardSelected = Color(0xFF87CEEB)
+    val TextPrimary = Color.White
+    val TextSecondary = Color.Black
+    val TextTertiary = Color.Gray
+}
+
+// Extensión para facilitar el uso
+class AppTheme {
+    companion object {
+        val colors = AppColors
+    }
+}
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,

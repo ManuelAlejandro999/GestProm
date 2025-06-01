@@ -20,6 +20,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.gestprom.ui.theme.AppTheme
+
 
 @Composable
 fun ScreenSemestres(
@@ -36,7 +38,7 @@ fun ScreenSemestres(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF01102C))
+            .background(AppTheme.colors.BackgroundPrimary)
             .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(20.dp))
@@ -55,7 +57,7 @@ fun ScreenSemestres(
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // Título centrado
+        // Título
         Text(
             text = "Semestres",
             fontSize = 30.sp,
@@ -79,7 +81,7 @@ fun ScreenSemestres(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0945D2)),
+            colors = ButtonDefaults.buttonColors(containerColor =  AppTheme.colors.ButtonPrimary),
             shape = RoundedCornerShape(12.dp),
             enabled = semestres.size < 12
         ) {
@@ -139,21 +141,22 @@ fun ScreenSemestres(
                     }
 
                     // Botón eliminar
-                    IconButton(
-                        onClick = {
-                            indexToDelete = index
-                            showConfirmDeleteDialog = true
-                        },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(Color(0xFF7C2121), RoundedCornerShape(12.dp))
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.borrar),
-                            contentDescription = "Eliminar",
-                            modifier = Modifier.size(35.dp)
-                        )
-                    }
+//                    IconButton(
+//                        onClick = {
+//                            indexToDelete = index
+//                            showConfirmDeleteDialog = true
+//                        },
+//
+//                        modifier = Modifier
+//                            .size(56.dp)
+//                            .background(Color(0xFF7C2121), RoundedCornerShape(12.dp))
+//                    ) {
+//                        Image(
+//                            painter = painterResource(id = R.drawable.borrar),
+//                            contentDescription = "Eliminar",
+//                            modifier = Modifier.size(35.dp)
+//                        )
+//                    }
                 }
             }
         }

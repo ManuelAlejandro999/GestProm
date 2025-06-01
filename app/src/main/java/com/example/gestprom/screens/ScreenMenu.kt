@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gestprom.ui.theme.AppTheme
+
 
 @Composable
 fun ScreenMenu(
@@ -27,7 +29,7 @@ fun ScreenMenu(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF01102C))
+            .background(AppTheme.colors.BackgroundPrimary)
             .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(20.dp))
@@ -69,7 +71,7 @@ fun ScreenMenu(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0945D2)),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.ButtonPrimary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Semestres",
@@ -89,7 +91,7 @@ fun ScreenMenu(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0945D2)),
+                colors = ButtonDefaults.buttonColors(containerColor =  AppTheme.colors.ButtonPrimary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
