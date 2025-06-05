@@ -37,10 +37,10 @@ fun ScreenMenu(
         // Botón de "Atrás"
         Box(modifier = Modifier.fillMaxWidth()) {
             Image(
-                painter = painterResource(id = R.drawable.atras),
+                painter = painterResource(id = R.drawable.flecha),
                 contentDescription = "Atrás",
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(25.dp)
                     .clickable { onAtrasClick() }
             )
         }
