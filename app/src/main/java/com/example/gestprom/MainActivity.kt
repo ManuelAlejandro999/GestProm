@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
 import com.example.gestprom.navigation.AppNavigation
+import com.example.gestprom.screens.ScreenConfig
 import com.example.gestprom.ui.theme.GestPromTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     AppNavigation(navController = navController)
+
                 }
             }
         }

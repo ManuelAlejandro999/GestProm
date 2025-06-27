@@ -12,11 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gestprom.models.Evaluacion
 import com.example.gestprom.ui.theme.AppTheme
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +25,7 @@ fun ScreenConfig(
     onBackClick: () -> Unit = {},
     onDateChange: (Int, String) -> Unit = { _, _ -> }
 ) {
-// Estado para las evaluaciones
+    // Estado para las evaluaciones
     var evaluaciones by remember {
         mutableStateOf(
             listOf(
@@ -43,7 +44,7 @@ fun ScreenConfig(
                     Text(
                         text = "Configurar evaluaciones",
                         color = AppTheme.colors.TextPrimary,
-                        fontSize = 20.sp,
+                        fontSize = 24.sp, // Tamaño estandarizado
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -70,15 +71,18 @@ fun ScreenConfig(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(evaluaciones) { evaluacion -> EvaluacionCard(
-                evaluacion = evaluacion,
-                onDateClick = { nuevaFecha -> evaluaciones = evaluaciones.map { eval -> if (eval.id == evaluacion.id) {
-                    eval.copy(fecha = nuevaFecha)
-                } else eval
-                }
-                    onDateChange(evaluacion.id, nuevaFecha)
-                }
-            )
+            items(evaluaciones) { evaluacion ->
+                EvaluacionCard(
+                    evaluacion = evaluacion,
+                    onDateClick = { nuevaFecha ->
+                        evaluaciones = evaluaciones.map { eval ->
+                            if (eval.id == evaluacion.id) {
+                                eval.copy(fecha = nuevaFecha)
+                            } else eval
+                        }
+                        onDateChange(evaluacion.id, nuevaFecha)
+                    }
+                )
             }
         }
     }
@@ -104,7 +108,7 @@ private fun EvaluacionCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-// Nombre de la evaluación
+            // Nombre de la evaluación
             Text(
                 text = evaluacion.nombre,
                 fontSize = 18.sp,
@@ -115,7 +119,7 @@ private fun EvaluacionCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-// Label "Fecha"
+            // Label "Fecha"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -130,7 +134,7 @@ private fun EvaluacionCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-// Campo de fecha clickeable
+            // Campo de fecha clickeable
             Card(
                 onClick = { showDatePicker = true },
                 modifier = Modifier
@@ -167,11 +171,12 @@ private fun EvaluacionCard(
         }
     }
 
-// DatePicker Dialog
+    // DatePicker Dialog
     if (showDatePicker) {
         DatePickerDialog(
             currentDate = evaluacion.fecha,
-            onDateSelected = { fecha -> onDateClick(fecha)
+            onDateSelected = { fecha ->
+                onDateClick(fecha)
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false }
@@ -193,9 +198,10 @@ private fun DatePickerDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    datePickerState.selectedDateMillis?.let { millis -> // Convertir millis a formato dd/MM/yyyy
-                        val date = java.util.Date(millis)
-                        val formatter = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        // Convertir millis a formato dd/MM/yyyy
+                        val date = Date(millis)
+                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                         onDateSelected(formatter.format(date))
                     }
                 }
@@ -218,7 +224,7 @@ private fun DatePickerDialog(
         DatePicker(
             state = datePickerState,
             colors = DatePickerDefaults.colors(
-                containerColor = AppTheme.colors.CardBackground
+                containerColor = AppTheme.colors.TextSecondary
             )
         )
     }

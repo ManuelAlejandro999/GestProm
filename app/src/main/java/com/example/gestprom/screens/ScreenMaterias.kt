@@ -1,10 +1,10 @@
 package com.example.gestprom.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -12,35 +12,39 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.gestprom.models.Materia
 import com.example.gestprom.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenMaterias(
+    semestreName: String = "",
     onBackClick: () -> Unit = {},
     onAddMateriaClick: () -> Unit = {},
     onConfigurarEvaluacionesClick: () -> Unit = {},
     onMateriaClick: (Materia) -> Unit = {}
 ) {
-    // Estado para las materias - empieza vacío
-    var materias by remember { mutableStateOf(emptyList<Materia>()) }
-class Materia {
+    // Estado para las materias - iniciamos con lista vacía
+    var materias by remember { mutableStateOf(listOf<Materia>()) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var nombreMateria by remember { mutableStateOf("") }
+    var calificacionObjetivo by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
 
-}
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Configurar asignaturas",
+                        text = if (semestreName.isNotEmpty()) semestreName else "Asignaturas",
                         color = AppTheme.colors.TextPrimary,
-                        fontSize = 20.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -62,25 +66,178 @@ class Materia {
     ) { paddingValues ->
 
         if (materias.isEmpty()) {
-            // Pantalla vacía (primera imagen)
+            // Pantalla vacía
             EmptyStateContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                onAddMateriaClick = onAddMateriaClick,
+                onAddMateriaClick = { showAddDialog = true },
                 onConfigurarEvaluacionesClick = onConfigurarEvaluacionesClick
             )
         } else {
-            // Pantalla con materias (segunda imagen)
+            // Pantalla con materias
             MateriasContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
                 materias = materias,
-                onAddMateriaClick = onAddMateriaClick,
+                onAddMateriaClick = { showAddDialog = true },
                 onConfigurarEvaluacionesClick = onConfigurarEvaluacionesClick,
                 onMateriaClick = onMateriaClick
             )
+        }
+    }
+
+    // Dialog para añadir materia
+    if (showAddDialog) {
+        Dialog(onDismissRequest = {
+            showAddDialog = false
+            nombreMateria = ""
+            calificacionObjetivo = ""
+            errorMessage = ""
+        }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = AppTheme.colors.CardBackground
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Añadir Asignatura",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.colors.TextSecondary,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Campo nombre
+                    OutlinedTextField(
+                        value = nombreMateria,
+                        onValueChange = { nombreMateria = it },
+                        label = {
+                            Text(
+                                "Nombre de la asignatura",
+                                color = AppTheme.colors.TextTertiary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                            focusedTextColor = AppTheme.colors.TextSecondary,
+                            unfocusedTextColor = AppTheme.colors.TextSecondary
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Campo calificación objetivo con validación
+                    OutlinedTextField(
+                        value = calificacionObjetivo,
+                        onValueChange = { input ->
+                            // Permitir solo números y un punto decimal
+                            if (input.isEmpty() || input.matches(Regex("^\\d{0,2}(\\.\\d{0,1})?$"))) {
+                                calificacionObjetivo = input
+                                // Validar rango en tiempo real
+                                val calificacion = input.toDoubleOrNull()
+                                errorMessage = when {
+                                    input.isEmpty() -> ""
+                                    calificacion == null -> "Formato inválido"
+                                    calificacion < 1.0 -> "Mínimo 1.0"
+                                    calificacion > 10.0 -> "Máximo 10.0"
+                                    else -> ""
+                                }
+                            }
+                        },
+                        label = {
+                            Text(
+                                "Calificación objetivo (1.0 - 10.0)",
+                                color = AppTheme.colors.TextTertiary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = errorMessage.isNotEmpty(),
+                        supportingText = if (errorMessage.isNotEmpty()) {
+                            { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
+                        } else null,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                            focusedTextColor = AppTheme.colors.TextSecondary,
+                            unfocusedTextColor = AppTheme.colors.TextSecondary
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                showAddDialog = false
+                                nombreMateria = ""
+                                calificacionObjetivo = ""
+                                errorMessage = ""
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppTheme.colors.TextTertiary
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Cancelar",
+                                color = AppTheme.colors.TextPrimary
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                val calificacion = calificacionObjetivo.toDoubleOrNull()
+                                if (nombreMateria.isNotBlank() &&
+                                    calificacion != null &&
+                                    calificacion >= 1.0 &&
+                                    calificacion <= 10.0) {
+                                    val nuevaMateria = Materia(
+                                        nombre = nombreMateria,
+                                        tipoCalificacion = "Numérica",
+                                        calificacion = calificacion.toDouble()
+                                    )
+                                    materias = materias + nuevaMateria
+                                    showAddDialog = false
+                                    nombreMateria = ""
+                                    calificacionObjetivo = ""
+                                    errorMessage = ""
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppTheme.colors.ButtonPrimary
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = nombreMateria.isNotBlank() &&
+                                    calificacionObjetivo.isNotBlank() &&
+                                    errorMessage.isEmpty() &&
+                                    calificacionObjetivo.toDoubleOrNull()?.let { it >= 1.0 && it <= 10.0 } == true
+                        ) {
+                            Text(
+                                "Guardar",
+                                color = AppTheme.colors.TextPrimary
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -96,6 +253,15 @@ private fun EmptyStateContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // Texto informativo
+        Text(
+            text = "No tienes asignaturas registradas",
+            fontSize = 18.sp,
+            color = AppTheme.colors.TextPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+
         // Botón Agregar asignatura
         Button(
             onClick = onAddMateriaClick,
@@ -237,23 +403,23 @@ private fun MateriaCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Nombre de la materia
             Text(
                 text = materia.nombre,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppTheme.colors.TextSecondary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Tipo de calificación
+            // Etiqueta "Calificación Objetivo"
             Text(
-                text = materia.tipoCalificacion,
+                text = "Calificación Objetivo",
                 fontSize = 14.sp,
                 color = AppTheme.colors.TextTertiary,
                 textAlign = TextAlign.Center
@@ -261,24 +427,28 @@ private fun MateriaCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Calificación
+            // Calificación objetivo
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp),
+                    .height(50.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Gray.copy(alpha = 0.3f)
+                    containerColor = AppTheme.colors.ButtonPrimary.copy(alpha = 0.1f)
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    2.dp,
+                    AppTheme.colors.ButtonPrimary.copy(alpha = 0.5f)
+                )
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = materia.calificacion.toString(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
+                        text = "${materia.calificacion}",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
                         color = AppTheme.colors.TextSecondary
                     )
                 }

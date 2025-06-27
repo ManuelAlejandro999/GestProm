@@ -4,5 +4,5 @@ package com.example.gestprom.models
 data class Materia(
     val nombre: String,
     val tipoCalificacion: String,
-    val calificacion: Int
+    val calificacion: Number
 )

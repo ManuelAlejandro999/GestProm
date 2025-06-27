@@ -15,12 +15,14 @@ import androidx.compose.ui.platform.LocalContext
 // Colores personalizados de la aplicación
 object AppColors {
     val BackgroundPrimary = Color(0xFF01102C)
+    val BackgroundSecondary = Color(0xFF1A2B47) // Color secundario para cards y elementos
     val ButtonPrimary = Color(0xFF0945D2)
-    val CardBackground = Color(0xFFE5E5E5)
+    val CardBackground = Color(0xFFB7B7B7)
     val CardSelected = Color(0xFF87CEEB)
     val TextPrimary = Color.White
     val TextSecondary = Color.Black
-    val TextTertiary = Color.Gray
+    val TextTertiary = Color(0xFF363636)
+
 }
 
 // Extensión para facilitar el uso
