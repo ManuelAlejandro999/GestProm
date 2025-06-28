@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276724906696",
+    "project_id": "gestprom-73607",
+    "storage_bucket": "gestprom-73607.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276724906696:android:f2da53e477c095528843fd",
+        "android_client_info": {
+          "package_name": "com.example.gestprom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoWkT1GkLOWLVILGZ6XtBCLrDE_KoLnrE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
