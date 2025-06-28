@@ -76,9 +76,9 @@ fun ScreenInicio(
                 modifier = Modifier.padding(bottom = 40.dp)
             )
 
-            // Botón Comenzar
+            // Botón Comenzar - Ahora navega al login
             Button(
-                onClick = onComenzarClick,
+                onClick = onComenzarClick, // Este ahora llevará al login
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
