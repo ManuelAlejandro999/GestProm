@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import com.example.gestprom.R
 import androidx.compose.runtime.*
@@ -36,13 +37,16 @@ fun ScreenSemestres(
     authViewModel: AuthViewModel = viewModel(),
     dataViewModel: DataViewModel = viewModel(),
     onAtrasClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
     onSemestreClick: (String) -> Unit = {}
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
     var editingSemestre by remember { mutableStateOf<Semestre?>(null) }
     var tempNombre by remember { mutableStateOf("") }
+    var renameSemestreError by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
     var newSemestreNombre by remember { mutableStateOf("") }
+    var addErrorMessage by remember { mutableStateOf("") }
     var expandedMenuIndex by remember { mutableStateOf(-1) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -73,6 +77,15 @@ fun ScreenSemestres(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver",
+                            tint = AppTheme.colors.TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onHomeClick) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Inicio",
                             tint = AppTheme.colors.TextPrimary
                         )
                     }
@@ -225,7 +238,11 @@ fun ScreenSemestres(
     // Dialog para añadir semestre
     if (showAddDialog) {
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
+            onDismissRequest = {
+                showAddDialog = false
+                newSemestreNombre = ""
+                addErrorMessage = ""
+            },
             containerColor = AppTheme.colors.BackgroundPrimary,
             title = {
                 Text(
@@ -235,36 +252,54 @@ fun ScreenSemestres(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = newSemestreNombre,
-                    onValueChange = { newSemestreNombre = it },
-                    label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
-                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                        focusedTextColor = AppTheme.colors.TextPrimary,
-                        unfocusedTextColor = AppTheme.colors.TextPrimary
+                Column {
+                    OutlinedTextField(
+                        value = newSemestreNombre,
+                        onValueChange = {
+                            newSemestreNombre = it
+                            if (dataViewModel.existeSemestreConNombre(it)) {
+                                addErrorMessage = "Ya existe un semestre con ese nombre."
+                            } else {
+                                addErrorMessage = ""
+                            }
+                        },
+                        label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                            focusedTextColor = AppTheme.colors.TextPrimary,
+                            unfocusedTextColor = AppTheme.colors.TextPrimary
+                        )
                     )
-                )
+                    if (addErrorMessage.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(addErrorMessage, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (newSemestreNombre.isNotBlank() && currentUser != null) {
+                        if (newSemestreNombre.isNotBlank() && currentUser != null && !dataViewModel.existeSemestreConNombre(newSemestreNombre)) {
                             val newSemestre = Semestre(nombre = newSemestreNombre)
                             dataViewModel.createSemestre(currentUser!!.uid, newSemestre)
                             newSemestreNombre = ""
+                            addErrorMessage = ""
                             showAddDialog = false
                         }
                     },
-                    enabled = newSemestreNombre.isNotBlank()
+                    enabled = newSemestreNombre.isNotBlank() && addErrorMessage.isEmpty()
                 ) {
                     Text("Añadir", color = AppTheme.colors.TextPrimary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
+                TextButton(onClick = {
+                    showAddDialog = false
+                    newSemestreNombre = ""
+                    addErrorMessage = ""
+                }) {
                     Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
@@ -274,7 +309,10 @@ fun ScreenSemestres(
     // Dialog para editar nombre
     if (showEditDialog && editingSemestre != null) {
         AlertDialog(
-            onDismissRequest = { showEditDialog = false },
+            onDismissRequest = { 
+                showEditDialog = false 
+                renameSemestreError = ""
+            },
             containerColor = AppTheme.colors.BackgroundPrimary,
             title = {
                 Text(
@@ -284,32 +322,52 @@ fun ScreenSemestres(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = tempNombre,
-                    onValueChange = { tempNombre = it },
-                    label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
-                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                        focusedTextColor = AppTheme.colors.TextPrimary,
-                        unfocusedTextColor = AppTheme.colors.TextPrimary
+                Column {
+                    OutlinedTextField(
+                        value = tempNombre,
+                        onValueChange = {
+                            tempNombre = it
+                            if (it.trim() != editingSemestre?.nombre?.trim() && dataViewModel.existeSemestreConNombre(it)) {
+                                renameSemestreError = "Ya existe un semestre con ese nombre."
+                            } else {
+                                renameSemestreError = ""
+                            }
+                        },
+                        label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                            focusedTextColor = AppTheme.colors.TextPrimary,
+                            unfocusedTextColor = AppTheme.colors.TextPrimary
+                        )
                     )
-                )
+                    if (renameSemestreError.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(renameSemestreError, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (tempNombre.isNotBlank() && currentUser != null && editingSemestre != null) {
-                        val updatedSemestre = editingSemestre!!.copy(nombre = tempNombre)
-                        dataViewModel.updateSemestre(currentUser!!.uid, updatedSemestre)
-                        showEditDialog = false
-                    }
-                }) {
+                TextButton(
+                    onClick = {
+                        if (tempNombre.isNotBlank() && currentUser != null && editingSemestre != null && renameSemestreError.isEmpty()) {
+                            val updatedSemestre = editingSemestre!!.copy(nombre = tempNombre)
+                            dataViewModel.updateSemestre(currentUser!!.uid, updatedSemestre)
+                            showEditDialog = false
+                            renameSemestreError = ""
+                        }
+                    },
+                    enabled = tempNombre.isNotBlank() && renameSemestreError.isEmpty()
+                ) {
                     Text("Guardar", color = AppTheme.colors.TextPrimary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) {
+                TextButton(onClick = { 
+                    showEditDialog = false 
+                    renameSemestreError = ""
+                }) {
                     Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }

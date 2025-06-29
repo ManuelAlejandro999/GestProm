@@ -15,8 +15,11 @@ import com.example.gestprom.viewmodels.AuthViewModel
 import com.example.gestprom.viewmodels.DataViewModel
 
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
-    val authViewModel: AuthViewModel = viewModel()
+fun AppNavigation(
+    navController: NavHostController = rememberNavController(),
+    authViewModel: AuthViewModel,
+    dataViewModel: DataViewModel
+) {
     val authState by authViewModel.authState.collectAsState()
 
     NavHost(navController = navController, startDestination = "inicio") {
@@ -75,13 +78,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
         composable("calculadora") {
             ScreenCalculadora(
-                onAtrasClick = { navController.popBackStack() }
+                onAtrasClick = { navController.popBackStack() },
+                onHomeClick = { 
+                    navController.navigate("menu") {
+                        popUpTo("menu") { inclusive = true }
+                    }
+                }
             )
         }
 
         composable("semestres") {
             ScreenSemestres(
                 onAtrasClick = { navController.popBackStack() },
+                onHomeClick = { 
+                    navController.navigate("menu") {
+                        popUpTo("menu") { inclusive = true }
+                    }
+                },
                 onSemestreClick = { semestreId ->
                     navController.navigate("materias/$semestreId")
                 }
@@ -90,14 +103,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
         composable("materias/{semestreId}") { backStackEntry ->
             val semestreId = backStackEntry.arguments?.getString("semestreId") ?: ""
-            val dataViewModel: DataViewModel = viewModel()
             val semestres by dataViewModel.semestres.collectAsState()
             val semestre = semestres.find { it.id == semestreId }
             val semestreName = semestre?.nombre ?: ""
             ScreenMaterias(
                 semestreName = semestreName,
                 semestreId = semestreId,
+                dataViewModel = dataViewModel,
                 onBackClick = { navController.popBackStack() },
+                onHomeClick = { 
+                    navController.navigate("menu") {
+                        popUpTo("menu") { inclusive = true }
+                    }
+                },
                 onAddMateriaClick = {
                     // Implementar navegación para agregar materia
                     // navController.navigate("agregar_materia")
@@ -117,7 +135,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val semestreId = backStackEntry.arguments?.getString("semestreId") ?: ""
 
             // Buscar la materia en el DataViewModel
-            val dataViewModel: DataViewModel = viewModel()
             val materias by dataViewModel.materias.collectAsState()
             val materia = materias.find { it.id == materiaId } ?: Materia(
                 id = materiaId,
@@ -128,7 +145,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             ScreenEvaluaciones(
                 materia = materia,
                 semestreId = semestreId,
-                onBackClick = { navController.popBackStack() }
+                dataViewModel = dataViewModel,
+                onBackClick = { navController.popBackStack() },
+                onHomeClick = { 
+                    navController.navigate("menu") {
+                        popUpTo("menu") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -136,7 +159,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val semestreId = backStackEntry.arguments?.getString("semestreId") ?: ""
             ScreenConfig(
                 semestreId = semestreId,
+                dataViewModel = dataViewModel,
                 onBackClick = { navController.popBackStack() },
+                onHomeClick = { 
+                    navController.navigate("menu") {
+                        popUpTo("menu") { inclusive = true }
+                    }
+                },
                 onDateChange = { id, fecha ->
                     // Manejar cambio de fecha
                 }
