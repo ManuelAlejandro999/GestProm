@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ fun ScreenMaterias(
     authViewModel: AuthViewModel = viewModel(),
     dataViewModel: DataViewModel = viewModel(),
     onBackClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
     onAddMateriaClick: () -> Unit = {},
     onConfigurarEvaluacionesClick: () -> Unit = {},
     onMateriaClick: (Materia) -> Unit = {}
@@ -42,6 +44,7 @@ fun ScreenMaterias(
     var nombreMateria by remember { mutableStateOf("") }
     var calificacionObjetivo by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    var addMateriaError by remember { mutableStateOf("") }
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val materias by dataViewModel.materias.collectAsState()
@@ -81,6 +84,15 @@ fun ScreenMaterias(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver",
+                            tint = AppTheme.colors.TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onHomeClick) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Inicio",
                             tint = AppTheme.colors.TextPrimary
                         )
                     }
@@ -149,6 +161,7 @@ fun ScreenMaterias(
                 nombreMateria = ""
                 calificacionObjetivo = ""
                 errorMessage = ""
+                addMateriaError = ""
             },
             containerColor = AppTheme.colors.BackgroundPrimary,
             title = {
@@ -165,7 +178,14 @@ fun ScreenMaterias(
                 ) {
                     OutlinedTextField(
                         value = nombreMateria,
-                        onValueChange = { nombreMateria = it },
+                        onValueChange = {
+                            nombreMateria = it
+                            if (dataViewModel.existeMateriaConNombre(it)) {
+                                addMateriaError = "Ya existe una materia con ese nombre."
+                            } else {
+                                addMateriaError = ""
+                            }
+                        },
                         label = { Text("Nombre de la asignatura", color = AppTheme.colors.TextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -175,6 +195,10 @@ fun ScreenMaterias(
                             unfocusedTextColor = AppTheme.colors.TextPrimary
                         )
                     )
+                    if (addMateriaError.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(addMateriaError, color = MaterialTheme.colorScheme.error)
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = calificacionObjetivo,
@@ -215,7 +239,8 @@ fun ScreenMaterias(
                             calificacion != null &&
                             calificacion >= 1.0 &&
                             calificacion <= 10.0 &&
-                            currentUser != null) {
+                            currentUser != null &&
+                            addMateriaError.isEmpty()) {
                             dataViewModel.loadSemestres(currentUser!!.uid)
                             val semestreActualizado = dataViewModel.semestres.value.find { it.id == semestreId }
                             val nuevaMateria = Materia(
@@ -232,12 +257,14 @@ fun ScreenMaterias(
                             nombreMateria = ""
                             calificacionObjetivo = ""
                             errorMessage = ""
+                            addMateriaError = ""
                         }
                     },
                     enabled = nombreMateria.isNotBlank() &&
                             calificacionObjetivo.isNotBlank() &&
                             errorMessage.isEmpty() &&
-                            calificacionObjetivo.toDoubleOrNull()?.let { it >= 1.0 && it <= 10.0 } == true
+                            calificacionObjetivo.toDoubleOrNull()?.let { it >= 1.0 && it <= 10.0 } == true &&
+                            addMateriaError.isEmpty()
                 ) {
                     Text("Guardar", color = AppTheme.colors.TextPrimary)
                 }
@@ -249,6 +276,7 @@ fun ScreenMaterias(
                         nombreMateria = ""
                         calificacionObjetivo = ""
                         errorMessage = ""
+                        addMateriaError = ""
                     }
                 ) {
                     Text("Cancelar", color = AppTheme.colors.TextPrimary)
@@ -340,6 +368,7 @@ private fun MateriasContent(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var editingMateria by remember { mutableStateOf<Materia?>(null) }
     var tempNombre by remember { mutableStateOf("") }
+    var renameMateriaError by remember { mutableStateOf("") }
     val dataViewModel: DataViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -425,6 +454,7 @@ private fun MateriasContent(
                 showRenameDialog = false
                 editingMateria = null
                 tempNombre = ""
+                renameMateriaError = ""
             },
             containerColor = AppTheme.colors.BackgroundPrimary,
             title = {
@@ -435,31 +465,45 @@ private fun MateriasContent(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = tempNombre,
-                    onValueChange = { tempNombre = it },
-                    label = { Text("Nuevo nombre", color = AppTheme.colors.TextPrimary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
-                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                        focusedTextColor = AppTheme.colors.TextPrimary,
-                        unfocusedTextColor = AppTheme.colors.TextPrimary
+                Column {
+                    OutlinedTextField(
+                        value = tempNombre,
+                        onValueChange = {
+                            tempNombre = it
+                            if (it.trim() != editingMateria?.nombre?.trim() && dataViewModel.existeMateriaConNombre(it)) {
+                                renameMateriaError = "Ya existe una materia con ese nombre."
+                            } else {
+                                renameMateriaError = ""
+                            }
+                        },
+                        label = { Text("Nuevo nombre", color = AppTheme.colors.TextPrimary) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                            focusedTextColor = AppTheme.colors.TextPrimary,
+                            unfocusedTextColor = AppTheme.colors.TextPrimary
+                        )
                     )
-                )
+                    if (renameMateriaError.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(renameMateriaError, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
                     println("DEBUG: PRESIONADO Guardar en dialogo de materia")
                     println("DEBUG: tempNombre='$tempNombre', currentUser=${currentUser?.uid}, semestreId='$semestreId', editingMateria=$editingMateria")
-                    if (tempNombre.isNotBlank() && currentUser != null && semestreId.isNotEmpty() && editingMateria != null) {
+                    if (tempNombre.isNotBlank() && currentUser != null && semestreId.isNotEmpty() && editingMateria != null && renameMateriaError.isEmpty()) {
                         val materiaActualizada = editingMateria!!.copy(nombre = tempNombre)
                         dataViewModel.updateMateria(currentUser?.uid ?: "", semestreId, materiaActualizada)
                         showRenameDialog = false
                         editingMateria = null
                         tempNombre = ""
+                        renameMateriaError = ""
                     }
-                }) {
+                }, enabled = tempNombre.isNotBlank() && renameMateriaError.isEmpty()) {
                     Text("Guardar", color = AppTheme.colors.TextPrimary)
                 }
             },
@@ -468,6 +512,7 @@ private fun MateriasContent(
                     showRenameDialog = false
                     editingMateria = null
                     tempNombre = ""
+                    renameMateriaError = ""
                 }) {
                     Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }

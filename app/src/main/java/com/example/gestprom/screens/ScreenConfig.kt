@@ -7,10 +7,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +25,10 @@ import com.example.gestprom.viewmodels.DataState
 import com.example.gestprom.viewmodels.DataViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,19 +37,24 @@ fun ScreenConfig(
     authViewModel: AuthViewModel = viewModel(),
     dataViewModel: DataViewModel = viewModel(),
     onBackClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
     onDateChange: (String, String) -> Unit = { _, _ -> }
 ) {
     // Estado para las evaluaciones
     var evaluaciones by remember {
         mutableStateOf(
             listOf(
-                Evaluacion(id = "1", nombre = "Parcial 1", fecha = "15/02/2026"),
-                Evaluacion(id = "2", nombre = "Parcial 2", fecha = "15/03/2026"),
-                Evaluacion(id = "3", nombre = "Parcial 3", fecha = "15/04/2026"),
-                Evaluacion(id = "4", nombre = "Ordinario", fecha = "25/04/2026")
+                Evaluacion(id = "1", nombre = "Parcial 1", fecha = ""),
+                Evaluacion(id = "2", nombre = "Parcial 2", fecha = ""),
+                Evaluacion(id = "3", nombre = "Parcial 3", fecha = ""),
+                Evaluacion(id = "4", nombre = "Ordinario", fecha = "")
             )
         )
     }
+
+    // Estado para mostrar feedback de actualización
+    var isUpdatingDates by remember { mutableStateOf(false) }
+    var lastUpdatedEvaluation by remember { mutableStateOf<String?>(null) }
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val semestres by dataViewModel.semestres.collectAsState()
@@ -61,12 +72,24 @@ fun ScreenConfig(
         if (semestreId.isNotEmpty()) {
             val semestre = semestres.find { it.id == semestreId }
             semestre?.let { s ->
+                // Obtener fecha actual
+                val calendar = Calendar.getInstance()
+                val currentYear = calendar.get(Calendar.YEAR)
+                val currentMonth = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH es 0-based
+                val currentDay = calendar.get(Calendar.DAY_OF_MONTH)
+                
+                // Fechas por defecto basadas en la fecha actual
+                val defaultParcial1 = String.format("%02d/%02d/%04d", currentDay, currentMonth, currentYear)
+                val defaultParcial2 = String.format("%02d/%02d/%04d", currentDay, (currentMonth + 1).takeIf { it <= 12 } ?: 1, currentYear)
+                val defaultParcial3 = String.format("%02d/%02d/%04d", currentDay, (currentMonth + 2).takeIf { it <= 12 } ?: 1, currentYear)
+                val defaultOrdinario = String.format("%02d/%02d/%04d", currentDay, (currentMonth + 3).takeIf { it <= 12 } ?: 1, currentYear)
+                
                 evaluaciones = evaluaciones.map { eval ->
                     when (eval.nombre) {
-                        "Parcial 1" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial1_fecha.ifEmpty { "15/02/2026" })
-                        "Parcial 2" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial2_fecha.ifEmpty { "15/03/2026" })
-                        "Parcial 3" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial3_fecha.ifEmpty { "15/04/2026" })
-                        "Ordinario" -> eval.copy(fecha = s.configuracionEvaluaciones.ordinario_fecha.ifEmpty { "25/04/2026" })
+                        "Parcial 1" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial1_fecha.ifEmpty { defaultParcial1 })
+                        "Parcial 2" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial2_fecha.ifEmpty { defaultParcial2 })
+                        "Parcial 3" -> eval.copy(fecha = s.configuracionEvaluaciones.parcial3_fecha.ifEmpty { defaultParcial3 })
+                        "Ordinario" -> eval.copy(fecha = s.configuracionEvaluaciones.ordinario_fecha.ifEmpty { defaultOrdinario })
                         else -> eval
                     }
                 }
@@ -79,9 +102,9 @@ fun ScreenConfig(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Configurar evaluaciones",
+                        text = "Configurar Evaluaciones",
                         color = AppTheme.colors.TextPrimary,
-                        fontSize = 24.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -89,7 +112,16 @@ fun ScreenConfig(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = "Regresar",
+                            tint = AppTheme.colors.TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onHomeClick) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Inicio",
                             tint = AppTheme.colors.TextPrimary
                         )
                     }
@@ -133,9 +165,77 @@ fun ScreenConfig(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Mostrar mensaje de actualización si está en curso
+                if (isUpdatingDates) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = AppTheme.colors.ButtonPrimary.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = AppTheme.colors.ButtonPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = "Actualizando fechas en todas las materias...",
+                                    color = AppTheme.colors.ButtonPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Mostrar mensaje de éxito si se actualizó recientemente
+                if (lastUpdatedEvaluation != null && !isUpdatingDates) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "Fechas actualizadas en todas las materias",
+                                    color = Color(0xFF4CAF50),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(evaluaciones) { evaluacion: Evaluacion ->
                     EvaluacionCard(
                         evaluacion = evaluacion,
+                        isUpdating = isUpdatingDates && lastUpdatedEvaluation == evaluacion.nombre,
                         onDateClick = { nuevaFecha ->
                             evaluaciones = evaluaciones.map { eval ->
                                 if (eval.id == evaluacion.id) {
@@ -158,6 +258,10 @@ fun ScreenConfig(
                                         configuracionEvaluaciones = configuracionActualizada
                                     )
                                     
+                                    // Mostrar estado de actualización
+                                    isUpdatingDates = true
+                                    lastUpdatedEvaluation = evaluacion.nombre
+                                    
                                     dataViewModel.updateSemestre(currentUser!!.uid, semestreActualizado)
 
                                     // ACTUALIZAR TODAS LAS EVALUACIONES DE TODAS LAS MATERIAS DEL SEMESTRE
@@ -166,6 +270,15 @@ fun ScreenConfig(
                                         semestreId = semestreId,
                                         config = configuracionActualizada
                                     )
+                                    
+                                    // Ocultar estado de actualización después de un tiempo
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        delay(3000) // 3 segundos
+                                        isUpdatingDates = false
+                                        // Mantener el mensaje de éxito por un poco más de tiempo
+                                        delay(2000) // 2 segundos más
+                                        lastUpdatedEvaluation = null
+                                    }
                                 }
                             }
                         }
@@ -179,6 +292,7 @@ fun ScreenConfig(
 @Composable
 private fun EvaluacionCard(
     evaluacion: Evaluacion,
+    isUpdating: Boolean,
     onDateClick: (String) -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -186,7 +300,11 @@ private fun EvaluacionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AppTheme.colors.CardBackground
+            containerColor = if (isUpdating) {
+                AppTheme.colors.ButtonPrimary.copy(alpha = 0.05f)
+            } else {
+                AppTheme.colors.CardBackground
+            }
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -196,14 +314,40 @@ private fun EvaluacionCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Nombre de la evaluación
-            Text(
-                text = evaluacion.nombre,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppTheme.colors.TextSecondary,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Nombre de la evaluación con indicador de actualización
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = evaluacion.nombre,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.colors.TextSecondary,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Indicador de actualización
+                if (isUpdating) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = AppTheme.colors.ButtonPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "Actualizando...",
+                            fontSize = 12.sp,
+                            color = AppTheme.colors.ButtonPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -224,12 +368,16 @@ private fun EvaluacionCard(
 
             // Campo de fecha clickeable
             Card(
-                onClick = { showDatePicker = true },
+                onClick = { if (!isUpdating) showDatePicker = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppTheme.colors.TextTertiary.copy(alpha = 0.3f)
+                    containerColor = if (isUpdating) {
+                        AppTheme.colors.TextTertiary.copy(alpha = 0.2f)
+                    } else {
+                        AppTheme.colors.TextTertiary.copy(alpha = 0.3f)
+                    }
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -244,14 +392,22 @@ private fun EvaluacionCard(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Seleccionar fecha",
-                            tint = AppTheme.colors.TextSecondary,
+                            tint = if (isUpdating) {
+                                AppTheme.colors.TextTertiary
+                            } else {
+                                AppTheme.colors.TextSecondary
+                            },
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = evaluacion.fecha,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = AppTheme.colors.TextSecondary
+                            color = if (isUpdating) {
+                                AppTheme.colors.TextTertiary
+                            } else {
+                                AppTheme.colors.TextSecondary
+                            }
                         )
                     }
                 }
@@ -291,14 +447,21 @@ private fun DatePickerDialog(
                 calendar.set(year, month, day, 12, 0, 0) // Usar 12:00 para evitar problemas de zona horaria
                 calendar.set(Calendar.MILLISECOND, 0)
                 calendar.timeInMillis
-            } else null
-        } else null
+            } else {
+                // Si no hay fecha válida, usar la fecha actual
+                System.currentTimeMillis()
+            }
+        } else {
+            // Si no hay fecha, usar la fecha actual
+            System.currentTimeMillis()
+        }
     } catch (e: Exception) {
-        null
+        // En caso de error, usar la fecha actual
+        System.currentTimeMillis()
     }
 
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialDateMillis ?: System.currentTimeMillis()
+        initialSelectedDateMillis = initialDateMillis
     )
 
     DatePickerDialog(

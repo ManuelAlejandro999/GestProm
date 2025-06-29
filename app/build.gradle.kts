@@ -58,6 +58,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     
+    // Fragment for ActivityResult API
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    
     // ViewModel and Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")
@@ -65,6 +68,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
+    
+    // WorkManager for notifications
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
