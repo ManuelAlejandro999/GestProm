@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,24 +19,51 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gestprom.models.Materia
 import com.example.gestprom.ui.theme.AppTheme
+import com.example.gestprom.viewmodels.AuthViewModel
+import com.example.gestprom.viewmodels.DataState
+import com.example.gestprom.viewmodels.DataViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenMaterias(
     semestreName: String = "",
+    semestreId: String = "",
+    authViewModel: AuthViewModel = viewModel(),
+    dataViewModel: DataViewModel = viewModel(),
     onBackClick: () -> Unit = {},
     onAddMateriaClick: () -> Unit = {},
     onConfigurarEvaluacionesClick: () -> Unit = {},
     onMateriaClick: (Materia) -> Unit = {}
 ) {
-    // Estado para las materias - iniciamos con lista vacía
-    var materias by remember { mutableStateOf(listOf<Materia>()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var nombreMateria by remember { mutableStateOf("") }
     var calificacionObjetivo by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val materias by dataViewModel.materias.collectAsState()
+    val materiasState by dataViewModel.materiasState.collectAsState()
+    val semestres by dataViewModel.semestres.collectAsState()
+
+    // Load materias when user and semestreId are available
+    LaunchedEffect(currentUser, semestreId) {
+        if (currentUser != null && semestreId.isNotEmpty()) {
+            dataViewModel.loadMaterias(currentUser!!.uid, semestreId)
+        }
+    }
+
+    // Load semestres to get configuration
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            dataViewModel.loadSemestres(user.uid)
+        }
+    }
+
+    // Get current semestre configuration
+    val semestreActual = semestres.find { it.id == semestreId }
 
     Scaffold(
         topBar = {
@@ -65,7 +93,31 @@ fun ScreenMaterias(
         containerColor = AppTheme.colors.BackgroundPrimary
     ) { paddingValues ->
 
-        if (materias.isEmpty()) {
+        if (materiasState is DataState.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = AppTheme.colors.ButtonPrimary
+                )
+            }
+        } else if (materiasState is DataState.Error) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = (materiasState as DataState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else if (materias.isEmpty()) {
             // Pantalla vacía
             EmptyStateContent(
                 modifier = Modifier
@@ -207,13 +259,22 @@ fun ScreenMaterias(
                                 if (nombreMateria.isNotBlank() &&
                                     calificacion != null &&
                                     calificacion >= 1.0 &&
-                                    calificacion <= 10.0) {
+                                    calificacion <= 10.0 &&
+                                    currentUser != null) {
+                                    // Recargar semestres antes de crear la materia para asegurar la configuración más reciente
+                                    dataViewModel.loadSemestres(currentUser!!.uid)
+                                    // Usar la configuración más reciente
+                                    val semestreActualizado = dataViewModel.semestres.value.find { it.id == semestreId }
                                     val nuevaMateria = Materia(
                                         nombre = nombreMateria,
-                                        tipoCalificacion = "Numérica",
-                                        calificacion = calificacion.toDouble()
+                                        calificacionObjetivo = calificacion
                                     )
-                                    materias = materias + nuevaMateria
+                                    dataViewModel.createMateriaWithEvaluaciones(
+                                        currentUser!!.uid,
+                                        semestreId,
+                                        nuevaMateria,
+                                        semestreActualizado?.configuracionEvaluaciones
+                                    )
                                     showAddDialog = false
                                     nombreMateria = ""
                                     calificacionObjetivo = ""
@@ -319,18 +380,34 @@ private fun MateriasContent(
     onConfigurarEvaluacionesClick: () -> Unit,
     onMateriaClick: (Materia) -> Unit
 ) {
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var editingMateria by remember { mutableStateOf<Materia?>(null) }
+    var tempNombre by remember { mutableStateOf("") }
+    val dataViewModel: DataViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val semestreId = dataViewModel.currentSemestreId.value ?: ""
     Column(
         modifier = modifier.padding(24.dp)
     ) {
-        // Lista de materias
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(materias) { materia ->
+            items(materias) { materia: Materia ->
                 MateriaCard(
                     materia = materia,
-                    onClick = { onMateriaClick(materia) }
+                    onClick = { onMateriaClick(materia) },
+                    onRename = {
+                        editingMateria = it
+                        tempNombre = it.nombre
+                        showRenameDialog = true
+                    },
+                    onDelete = {
+                        editingMateria = it
+                        showDeleteDialog = true
+                    }
                 )
             }
         }
@@ -384,13 +461,72 @@ private fun MateriasContent(
             )
         }
     }
+    // Diálogo para renombrar materia
+    if (showRenameDialog && editingMateria != null) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Renombrar materia") },
+            text = {
+                OutlinedTextField(
+                    value = tempNombre,
+                    onValueChange = { tempNombre = it },
+                    label = { Text("Nuevo nombre") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (tempNombre.isNotBlank() && currentUser != null && semestreId.isNotEmpty()) {
+                        val materiaActualizada = editingMateria!!.copy(nombre = tempNombre)
+                        dataViewModel.updateMateria(currentUser?.uid ?: "", semestreId, materiaActualizada)
+                    }
+                    showRenameDialog = false
+                    editingMateria = null
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    // Diálogo para eliminar materia
+    if (showDeleteDialog && editingMateria != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar materia") },
+            text = { Text("¿Estás seguro de que deseas eliminar la materia '${editingMateria?.nombre}'? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (currentUser != null && semestreId.isNotEmpty()) {
+                        dataViewModel.deleteMateria(currentUser?.uid ?: "", semestreId, editingMateria!!.id)
+                    }
+                    showDeleteDialog = false
+                    editingMateria = null
+                }) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun MateriaCard(
     materia: Materia,
-    onClick: () -> Unit
+    onClick: () -> Unit = {},
+    onRename: (Materia) -> Unit = {},
+    onDelete: (Materia) -> Unit = {}
 ) {
+    var expandedMenu by remember { mutableStateOf(false) }
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -400,56 +536,83 @@ private fun MateriaCard(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Nombre de la materia
-            Text(
-                text = materia.nombre,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppTheme.colors.TextSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Etiqueta "Calificación Objetivo"
-            Text(
-                text = "Calificación Objetivo",
-                fontSize = 14.sp,
-                color = AppTheme.colors.TextTertiary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Calificación objetivo
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = AppTheme.colors.ButtonPrimary.copy(alpha = 0.1f)
-                ),
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    2.dp,
-                    AppTheme.colors.ButtonPrimary.copy(alpha = 0.5f)
-                )
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                // Nombre de la materia
+                Text(
+                    text = materia.nombre,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.colors.TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Calificación Objetivo",
+                    fontSize = 14.sp,
+                    color = AppTheme.colors.TextTertiary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = AppTheme.colors.ButtonPrimary.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        2.dp,
+                        AppTheme.colors.ButtonPrimary.copy(alpha = 0.5f)
+                    )
                 ) {
-                    Text(
-                        text = "${materia.calificacion}",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.TextSecondary
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${materia.calificacionObjetivo}",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppTheme.colors.TextSecondary
+                        )
+                    }
+                }
+            }
+            Box {
+                IconButton(onClick = { expandedMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Opciones",
+                        tint = AppTheme.colors.TextPrimary
+                    )
+                }
+                DropdownMenu(
+                    expanded = expandedMenu,
+                    onDismissRequest = { expandedMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Renombrar") },
+                        onClick = {
+                            expandedMenu = false
+                            onRename(materia)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = {
+                            expandedMenu = false
+                            onDelete(materia)
+                        }
                     )
                 }
             }

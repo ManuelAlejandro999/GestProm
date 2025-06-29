@@ -25,14 +25,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gestprom.R
 import com.example.gestprom.ui.theme.AppTheme
+import com.example.gestprom.viewmodels.AuthState
+import com.example.gestprom.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenRegistro(
-    onRegistroClick: (String, String, String, String) -> Unit = { _, _, _, _ -> },
-    onAtrasClick: () -> Unit = {}
+    authViewModel: AuthViewModel = viewModel(),
+    onAtrasClick: () -> Unit = {},
+    onRegistroSuccess: () -> Unit = {}
 ) {
     var matricula by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
@@ -41,8 +45,21 @@ fun ScreenRegistro(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    
+    val authState by authViewModel.authState.collectAsState()
+
+    // Handle authentication state changes
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Authenticated -> {
+                onRegistroSuccess()
+            }
+            is AuthState.Error -> {
+                // Error is handled in the UI
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -114,7 +131,7 @@ fun ScreenRegistro(
                 value = nombre,
                 onValueChange = {
                     nombre = it
-                    errorMessage = ""
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -149,7 +166,7 @@ fun ScreenRegistro(
                 value = matricula,
                 onValueChange = {
                     matricula = it
-                    errorMessage = ""
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -184,7 +201,7 @@ fun ScreenRegistro(
                 value = email,
                 onValueChange = {
                     email = it
-                    errorMessage = ""
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -219,7 +236,7 @@ fun ScreenRegistro(
                 value = password,
                 onValueChange = {
                     password = it
-                    errorMessage = ""
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -266,7 +283,7 @@ fun ScreenRegistro(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
-                    errorMessage = ""
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -309,9 +326,9 @@ fun ScreenRegistro(
             )
 
             // Mensaje de error
-            if (errorMessage.isNotEmpty()) {
+            if (authState is AuthState.Error) {
                 Text(
-                    text = errorMessage,
+                    text = (authState as AuthState.Error).message,
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -324,15 +341,26 @@ fun ScreenRegistro(
                 onClick = {
                     // Validaciones
                     when {
-                        nombre.isBlank() -> errorMessage = "El nombre es requerido"
-                        matricula.length < 6 -> errorMessage = "La matrícula debe tener al menos 6 caracteres"
-                        email.isBlank() -> errorMessage = "El correo es requerido"
-                        !email.contains("@") || !email.contains(".") -> errorMessage = "Formato de correo inválido"
-                        password.length < 4 -> errorMessage = "La contraseña debe tener al menos 4 caracteres"
-                        password != confirmPassword -> errorMessage = "Las contraseñas no coinciden"
+                        nombre.isBlank() -> {
+                            // Show validation error
+                        }
+                        matricula.length < 6 -> {
+                            // Show validation error
+                        }
+                        email.isBlank() -> {
+                            // Show validation error
+                        }
+                        !email.contains("@") || !email.contains(".") -> {
+                            // Show validation error
+                        }
+                        password.length < 6 -> {
+                            // Show validation error
+                        }
+                        password != confirmPassword -> {
+                            // Show validation error
+                        }
                         else -> {
-                            isLoading = true
-                            onRegistroClick(matricula, password, nombre, email)
+                            authViewModel.register(nombre, matricula, email, password)
                         }
                     }
                 },
@@ -343,9 +371,16 @@ fun ScreenRegistro(
                     containerColor = AppTheme.colors.ButtonPrimary
                 ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !isLoading
+                enabled = authState !is AuthState.Loading && 
+                         nombre.isNotBlank() && 
+                         matricula.length >= 6 && 
+                         email.isNotBlank() && 
+                         email.contains("@") && 
+                         email.contains(".") && 
+                         password.length >= 6 && 
+                         password == confirmPassword
             ) {
-                if (isLoading) {
+                if (authState is AuthState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         color = Color.White,
