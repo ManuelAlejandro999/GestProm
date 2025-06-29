@@ -123,17 +123,24 @@ class DataViewModel : ViewModel() {
         viewModelScope.launch {
             _materiasState.value = DataState.Loading
             try {
+                println("DEBUG: Cargando materias para userId: $userId, semestreId: $semestreId")
                 val result = firestoreService.getMaterias(userId, semestreId)
                 result.fold(
                     onSuccess = { materias ->
+                        println("DEBUG: Materias cargadas exitosamente: ${materias.size} materias")
+                        materias.forEach { materia ->
+                            println("DEBUG: Materia - ID: ${materia.id}, Nombre: ${materia.nombre}")
+                        }
                         _materias.value = materias
                         _materiasState.value = DataState.Success
                     },
                     onFailure = { exception ->
+                        println("DEBUG: Error al cargar materias: ${exception.message}")
                         _materiasState.value = DataState.Error(exception.message ?: "Error al cargar materias")
                     }
                 )
             } catch (e: Exception) {
+                println("DEBUG: Excepción al cargar materias: ${e.message}")
                 _materiasState.value = DataState.Error(e.message ?: "Error inesperado")
             }
         }
@@ -214,16 +221,20 @@ class DataViewModel : ViewModel() {
         viewModelScope.launch {
             _materiasState.value = DataState.Loading
             try {
+                println("DEBUG: Actualizando materia - ID: ${materia.id}, Nombre: ${materia.nombre}")
                 val result = firestoreService.updateMateria(userId, semestreId, materia)
                 result.fold(
                     onSuccess = {
+                        println("DEBUG: Materia actualizada exitosamente")
                         loadMaterias(userId, semestreId) // Reload materias
                     },
                     onFailure = { exception ->
+                        println("DEBUG: Error al actualizar materia: ${exception.message}")
                         _materiasState.value = DataState.Error(exception.message ?: "Error al actualizar materia")
                     }
                 )
             } catch (e: Exception) {
+                println("DEBUG: Excepción al actualizar materia: ${e.message}")
                 _materiasState.value = DataState.Error(e.message ?: "Error inesperado")
             }
         }

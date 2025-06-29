@@ -107,25 +107,46 @@ class FirestoreService {
 
     suspend fun getMaterias(userId: String, semestreId: String): Result<List<Materia>> {
         return try {
+            println("DEBUG: FirestoreService - Obteniendo materias")
+            println("DEBUG: Path: usuarios/$userId/semestres/$semestreId/materias")
+            
             val snapshot = db.collection("usuarios").document(userId)
                 .collection("semestres").document(semestreId)
                 .collection("materias").get().await()
+            
             val materias = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Materia::class.java)?.copy(id = doc.id)
+                val materia = doc.toObject(Materia::class.java)?.copy(id = doc.id)
+                println("DEBUG: Materia encontrada - ID: ${materia?.id}, Nombre: ${materia?.nombre}")
+                materia
             }
+            
+            println("DEBUG: Total de materias obtenidas: ${materias.size}")
             Result.success(materias)
         } catch (e: Exception) {
+            println("DEBUG: Error en FirestoreService al obtener materias: ${e.message}")
             Result.failure(e)
         }
     }
 
     suspend fun updateMateria(userId: String, semestreId: String, materia: Materia): Result<Unit> {
         return try {
+            println("DEBUG: FirestoreService - Actualizando materia en Firestore")
+            println("DEBUG: Path: usuarios/$userId/semestres/$semestreId/materias/${materia.id}")
+            println("DEBUG: Materia a actualizar: $materia")
+            
             db.collection("usuarios").document(userId)
                 .collection("semestres").document(semestreId)
                 .collection("materias").document(materia.id).set(materia).await()
+            
+            println("DEBUG: Materia actualizada exitosamente en Firestore")
+            // Log extra: leer el documento actualizado
+            val doc = db.collection("usuarios").document(userId)
+                .collection("semestres").document(semestreId)
+                .collection("materias").document(materia.id).get().await()
+            println("DEBUG: Documento Firestore tras update: ${doc.data}")
             Result.success(Unit)
         } catch (e: Exception) {
+            println("DEBUG: Error en FirestoreService al actualizar materia: ${e.message}")
             Result.failure(e)
         }
     }

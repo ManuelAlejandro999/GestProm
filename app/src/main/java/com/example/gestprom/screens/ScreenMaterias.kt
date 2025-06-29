@@ -135,69 +135,52 @@ fun ScreenMaterias(
                 materias = materias,
                 onAddMateriaClick = { showAddDialog = true },
                 onConfigurarEvaluacionesClick = onConfigurarEvaluacionesClick,
-                onMateriaClick = onMateriaClick
+                onMateriaClick = onMateriaClick,
+                semestreId = semestreId
             )
         }
     }
 
     // Dialog para añadir materia
     if (showAddDialog) {
-        Dialog(onDismissRequest = {
-            showAddDialog = false
-            nombreMateria = ""
-            calificacionObjetivo = ""
-            errorMessage = ""
-        }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = AppTheme.colors.CardBackground
+        AlertDialog(
+            onDismissRequest = {
+                showAddDialog = false
+                nombreMateria = ""
+                calificacionObjetivo = ""
+                errorMessage = ""
+            },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Añadir Asignatura",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-            ) {
+            },
+            text = {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Añadir Asignatura",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.TextSecondary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Campo nombre
                     OutlinedTextField(
                         value = nombreMateria,
                         onValueChange = { nombreMateria = it },
-                        label = {
-                            Text(
-                                "Nombre de la asignatura",
-                                color = AppTheme.colors.TextTertiary
-                            )
-                        },
+                        label = { Text("Nombre de la asignatura", color = AppTheme.colors.TextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = AppTheme.colors.ButtonPrimary,
                             focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                            focusedTextColor = AppTheme.colors.TextSecondary,
-                            unfocusedTextColor = AppTheme.colors.TextSecondary
+                            focusedTextColor = AppTheme.colors.TextPrimary,
+                            unfocusedTextColor = AppTheme.colors.TextPrimary
                         )
                     )
-
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // Campo calificación objetivo con validación
                     OutlinedTextField(
                         value = calificacionObjetivo,
                         onValueChange = { input ->
-                            // Permitir solo números y un punto decimal
                             if (input.isEmpty() || input.matches(Regex("^\\d{0,2}(\\.\\d{0,1})?$"))) {
                                 calificacionObjetivo = input
-                                // Validar rango en tiempo real
                                 val calificacion = input.toDoubleOrNull()
                                 errorMessage = when {
                                     input.isEmpty() -> ""
@@ -208,12 +191,7 @@ fun ScreenMaterias(
                                 }
                             }
                         },
-                        label = {
-                            Text(
-                                "Calificación objetivo (1.0 - 10.0)",
-                                color = AppTheme.colors.TextTertiary
-                            )
-                        },
+                        label = { Text("Calificación objetivo (1.0 - 10.0)", color = AppTheme.colors.TextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = errorMessage.isNotEmpty(),
@@ -223,83 +201,60 @@ fun ScreenMaterias(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = AppTheme.colors.ButtonPrimary,
                             focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                            focusedTextColor = AppTheme.colors.TextSecondary,
-                            unfocusedTextColor = AppTheme.colors.TextSecondary
+                            focusedTextColor = AppTheme.colors.TextPrimary,
+                            unfocusedTextColor = AppTheme.colors.TextPrimary
                         )
                     )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                showAddDialog = false
-                                nombreMateria = ""
-                                calificacionObjetivo = ""
-                                errorMessage = ""
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.TextTertiary
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                "Cancelar",
-                                color = AppTheme.colors.TextPrimary
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val calificacion = calificacionObjetivo.toDoubleOrNull()
+                        if (nombreMateria.isNotBlank() &&
+                            calificacion != null &&
+                            calificacion >= 1.0 &&
+                            calificacion <= 10.0 &&
+                            currentUser != null) {
+                            dataViewModel.loadSemestres(currentUser!!.uid)
+                            val semestreActualizado = dataViewModel.semestres.value.find { it.id == semestreId }
+                            val nuevaMateria = Materia(
+                                nombre = nombreMateria,
+                                calificacionObjetivo = calificacion
                             )
-                        }
-
-                        Button(
-                            onClick = {
-                                val calificacion = calificacionObjetivo.toDoubleOrNull()
-                                if (nombreMateria.isNotBlank() &&
-                                    calificacion != null &&
-                                    calificacion >= 1.0 &&
-                                    calificacion <= 10.0 &&
-                                    currentUser != null) {
-                                    // Recargar semestres antes de crear la materia para asegurar la configuración más reciente
-                                    dataViewModel.loadSemestres(currentUser!!.uid)
-                                    // Usar la configuración más reciente
-                                    val semestreActualizado = dataViewModel.semestres.value.find { it.id == semestreId }
-                                    val nuevaMateria = Materia(
-                                        nombre = nombreMateria,
-                                        calificacionObjetivo = calificacion
-                                    )
-                                    dataViewModel.createMateriaWithEvaluaciones(
-                                        currentUser!!.uid,
-                                        semestreId,
-                                        nuevaMateria,
-                                        semestreActualizado?.configuracionEvaluaciones
-                                    )
-                                    showAddDialog = false
-                                    nombreMateria = ""
-                                    calificacionObjetivo = ""
-                                    errorMessage = ""
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.ButtonPrimary
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = nombreMateria.isNotBlank() &&
-                                    calificacionObjetivo.isNotBlank() &&
-                                    errorMessage.isEmpty() &&
-                                    calificacionObjetivo.toDoubleOrNull()?.let { it >= 1.0 && it <= 10.0 } == true
-                        ) {
-                            Text(
-                                "Guardar",
-                                color = AppTheme.colors.TextPrimary
+                            dataViewModel.createMateriaWithEvaluaciones(
+                                currentUser!!.uid,
+                                semestreId,
+                                nuevaMateria,
+                                semestreActualizado?.configuracionEvaluaciones
                             )
+                            showAddDialog = false
+                            nombreMateria = ""
+                            calificacionObjetivo = ""
+                            errorMessage = ""
                         }
+                    },
+                    enabled = nombreMateria.isNotBlank() &&
+                            calificacionObjetivo.isNotBlank() &&
+                            errorMessage.isEmpty() &&
+                            calificacionObjetivo.toDoubleOrNull()?.let { it >= 1.0 && it <= 10.0 } == true
+                ) {
+                    Text("Guardar", color = AppTheme.colors.TextPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddDialog = false
+                        nombreMateria = ""
+                        calificacionObjetivo = ""
+                        errorMessage = ""
                     }
+                ) {
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
-        }
+        )
     }
 }
 
@@ -378,7 +333,8 @@ private fun MateriasContent(
     materias: List<Materia>,
     onAddMateriaClick: () -> Unit,
     onConfigurarEvaluacionesClick: () -> Unit,
-    onMateriaClick: (Materia) -> Unit
+    onMateriaClick: (Materia) -> Unit,
+    semestreId: String
 ) {
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -387,7 +343,7 @@ private fun MateriasContent(
     val dataViewModel: DataViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val semestreId = dataViewModel.currentSemestreId.value ?: ""
+
     Column(
         modifier = modifier.padding(24.dp)
     ) {
@@ -461,47 +417,87 @@ private fun MateriasContent(
             )
         }
     }
+    
     // Diálogo para renombrar materia
     if (showRenameDialog && editingMateria != null) {
         AlertDialog(
-            onDismissRequest = { showRenameDialog = false },
-            title = { Text("Renombrar materia") },
+            onDismissRequest = {
+                showRenameDialog = false
+                editingMateria = null
+                tempNombre = ""
+            },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Renombrar materia",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = tempNombre,
                     onValueChange = { tempNombre = it },
-                    label = { Text("Nuevo nombre") },
-                    singleLine = true
+                    label = { Text("Nuevo nombre", color = AppTheme.colors.TextPrimary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                        focusedTextColor = AppTheme.colors.TextPrimary,
+                        unfocusedTextColor = AppTheme.colors.TextPrimary
+                    )
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (tempNombre.isNotBlank() && currentUser != null && semestreId.isNotEmpty()) {
+                    println("DEBUG: PRESIONADO Guardar en dialogo de materia")
+                    println("DEBUG: tempNombre='$tempNombre', currentUser=${currentUser?.uid}, semestreId='$semestreId', editingMateria=$editingMateria")
+                    if (tempNombre.isNotBlank() && currentUser != null && semestreId.isNotEmpty() && editingMateria != null) {
                         val materiaActualizada = editingMateria!!.copy(nombre = tempNombre)
                         dataViewModel.updateMateria(currentUser?.uid ?: "", semestreId, materiaActualizada)
+                        showRenameDialog = false
+                        editingMateria = null
+                        tempNombre = ""
                     }
-                    showRenameDialog = false
-                    editingMateria = null
                 }) {
-                    Text("Guardar")
+                    Text("Guardar", color = AppTheme.colors.TextPrimary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) {
-                    Text("Cancelar")
+                TextButton(onClick = {
+                    showRenameDialog = false
+                    editingMateria = null
+                    tempNombre = ""
+                }) {
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
         )
     }
+    
     // Diálogo para eliminar materia
     if (showDeleteDialog && editingMateria != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar materia") },
-            text = { Text("¿Estás seguro de que deseas eliminar la materia '${editingMateria?.nombre}'? Esta acción no se puede deshacer.") },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Eliminar materia",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Estás seguro de que deseas eliminar la materia '${editingMateria?.nombre}'? Esta acción no se puede deshacer.",
+                    color = AppTheme.colors.TextPrimary
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    if (currentUser != null && semestreId.isNotEmpty()) {
+                    println("DEBUG: PRESIONADO Eliminar en dialogo de materia")
+                    println("DEBUG: currentUser=${currentUser?.uid}, semestreId='$semestreId', editingMateria=$editingMateria")
+                    if (currentUser != null && semestreId.isNotEmpty() && editingMateria != null) {
                         dataViewModel.deleteMateria(currentUser?.uid ?: "", semestreId, editingMateria!!.id)
                     }
                     showDeleteDialog = false
@@ -512,7 +508,7 @@ private fun MateriasContent(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
         )

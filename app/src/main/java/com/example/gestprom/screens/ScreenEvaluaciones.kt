@@ -364,32 +364,24 @@ private fun EditEvaluacionDialog(
     } catch (e: Exception) {
         null
     }
-    
-    val fechaCumplida = fechaEvaluacionDate != null && fechaActualDate != null && 
-                       (fechaEvaluacionDate?.before(fechaActualDate) == true || fechaEvaluacionDate?.equals(fechaActualDate) == true)
+    val fechaCumplida = fechaEvaluacionDate != null && fechaActualDate != null &&
+        (fechaEvaluacionDate?.before(fechaActualDate) == true || fechaEvaluacionDate?.equals(fechaActualDate) == true)
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = AppTheme.colors.CardBackground
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Agregar Resultado",
+                color = AppTheme.colors.TextPrimary,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
             )
-        ) {
+        },
+        text = {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Agregar Resultado",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AppTheme.colors.TextSecondary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
                 // Dropdown para seleccionar evaluación
                 ExposedDropdownMenuBox(
                     expanded = expanded,
@@ -418,7 +410,6 @@ private fun EditEvaluacionDialog(
                             unfocusedTextColor = AppTheme.colors.TextSecondary
                         )
                     )
-
                     ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
@@ -440,18 +431,13 @@ private fun EditEvaluacionDialog(
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Mostrar fecha de la evaluación seleccionada
                 Text(
                     text = "Fecha: ${selectedEvaluacion.fecha}",
                     fontSize = 14.sp,
                     color = if (fechaCumplida) AppTheme.colors.ButtonPrimary else AppTheme.colors.TextTertiary,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-
-                // Mostrar estado de la fecha
                 if (!fechaCumplida) {
                     Text(
                         text = "⚠️ No puedes agregar resultado hasta que se cumpla la fecha",
@@ -467,8 +453,6 @@ private fun EditEvaluacionDialog(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
-
-                // Campo de calificación
                 OutlinedTextField(
                     value = calificacion,
                     onValueChange = { input ->
@@ -499,45 +483,29 @@ private fun EditEvaluacionDialog(
                         unfocusedTextColor = AppTheme.colors.TextSecondary
                     )
                 )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppTheme.colors.TextTertiary
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Cancelar", color = AppTheme.colors.TextPrimary)
-                    }
-
-                    Button(
-                        onClick = {
-                            val cal = calificacion.toDoubleOrNull()
-                            if (cal != null && cal >= 0.0 && cal <= 10.0 && fechaCumplida) {
-                                onConfirm(selectedEvaluacion.id, cal)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppTheme.colors.ButtonPrimary
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = fechaCumplida && 
-                                calificacion.isNotBlank() &&
-                                errorMessage.isEmpty() &&
-                                calificacion.toDoubleOrNull()?.let { it >= 0.0 && it <= 10.0 } == true
-                    ) {
-                        Text("Guardar", color = AppTheme.colors.TextPrimary)
-                    }
-                }
             }
-        }
-    }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val cal = calificacion.toDoubleOrNull()
+                    if (cal != null && cal >= 0.0 && cal <= 10.0 && fechaCumplida) {
+                        onConfirm(selectedEvaluacion.id, cal)
+                    }
+                },
+                enabled = fechaCumplida &&
+                        calificacion.isNotBlank() &&
+                        errorMessage.isEmpty() &&
+                        calificacion.toDoubleOrNull()?.let { it >= 0.0 && it <= 10.0 } == true
+            ) {
+                Text("Guardar", color = AppTheme.colors.TextPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = AppTheme.colors.TextPrimary)
+            }
+        },
+        containerColor = AppTheme.colors.BackgroundPrimary
+    )
 }

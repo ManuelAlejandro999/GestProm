@@ -24,9 +24,9 @@ import com.example.gestprom.ui.theme.AppTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenMenu(
-    onSemestresClick: () -> Unit = {},      // Navegación a pantalla de Semestres
-    onCalculadoraClick: () -> Unit = {},    // Calculadora
-    onCerrarSesionClick: () -> Unit = {},   // Cerrar sesión
+    onSemestresClick: () -> Unit = {},
+    onCalculadoraClick: () -> Unit = {},
+    onCerrarSesionClick: () -> Unit = {},
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -42,7 +42,6 @@ fun ScreenMenu(
                     )
                 },
                 actions = {
-                    // Botón de cerrar sesión en la esquina superior derecha
                     IconButton(onClick = { showLogoutDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
@@ -58,120 +57,81 @@ fun ScreenMenu(
         },
         containerColor = AppTheme.colors.BackgroundPrimary
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            // Mensaje de bienvenida
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp)
+                    .fillMaxWidth(0.92f)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = AppTheme.colors.BackgroundSecondary
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Text(
-                    text = "¡Bienvenido!",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "¿Qué te gustaría hacer hoy?",
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Botones principales
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Botón Semestres
-                Button(
-                    onClick = onSemestresClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.ButtonPrimary),
-                    shape = RoundedCornerShape(12.dp)
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Semestres",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White)
-                }
-
-                Spacer(modifier = Modifier.height(15.dp))
-
-                // Botón "¿Cuánto me falta?"
-                Button(
-                    onClick = {
-                        onCalculadoraClick()  // <- Este botón llama a la calculadora
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor =  AppTheme.colors.ButtonPrimary),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "¿Cuánto me falta?",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                    // Logo o icono
+                    Image(
+                        painter = painterResource(id = R.drawable.imagenlogo),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(80.dp)
                     )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Botón de cerrar sesión alternativo (opcional)
-                OutlinedButton(
-                    onClick = { showLogoutDialog = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        Color.White.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "¡Bienvenido a GestProm!",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.colors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Gestiona tus semestres, materias y evaluaciones de forma sencilla.",
+                        fontSize = 15.sp,
+                        color = AppTheme.colors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    // Botón Semestres
+                    Button(
+                        onClick = onSemestresClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.ButtonPrimary),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Semestres",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppTheme.colors.TextPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Botón Calculadora
+                    Button(
+                        onClick = onCalculadoraClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.ButtonPrimary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
                         Text(
-                            text = "Cerrar Sesión",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            text = "¿Cuánto me falta?",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppTheme.colors.TextPrimary
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 
@@ -183,14 +143,14 @@ fun ScreenMenu(
             title = {
                 Text(
                     text = "Cerrar Sesión",
-                    color = Color.White,
+                    color = AppTheme.colors.TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
                     text = "¿Estás seguro de que quieres cerrar sesión?",
-                    color = Color.White.copy(alpha = 0.8f)
+                    color = AppTheme.colors.TextPrimary
                 )
             },
             confirmButton = {
@@ -200,21 +160,12 @@ fun ScreenMenu(
                         onCerrarSesionClick()
                     }
                 ) {
-                    Text(
-                        text = "Cerrar Sesión",
-                        color = AppTheme.colors.ButtonPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Cerrar Sesión")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showLogoutDialog = false }
-                ) {
-                    Text(
-                        text = "Cancelar",
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancelar")
                 }
             }
         )
