@@ -224,187 +224,116 @@ fun ScreenSemestres(
 
     // Dialog para añadir semestre
     if (showAddDialog) {
-        Dialog(onDismissRequest = { showAddDialog = false }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = AppTheme.colors.CardBackground
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Añadir Semestre",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            },
+            text = {
+                OutlinedTextField(
+                    value = newSemestreNombre,
+                    onValueChange = { newSemestreNombre = it },
+                    label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                        focusedTextColor = AppTheme.colors.TextPrimary,
+                        unfocusedTextColor = AppTheme.colors.TextPrimary
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newSemestreNombre.isNotBlank() && currentUser != null) {
+                            val newSemestre = Semestre(nombre = newSemestreNombre)
+                            dataViewModel.createSemestre(currentUser!!.uid, newSemestre)
+                            newSemestreNombre = ""
+                            showAddDialog = false
+                        }
+                    },
+                    enabled = newSemestreNombre.isNotBlank()
                 ) {
-                    Text(
-                        text = "Añadir Semestre",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.TextSecondary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = newSemestreNombre,
-                        onValueChange = { newSemestreNombre = it },
-                        label = {
-                            Text(
-                                "Nombre del semestre",
-                                color = AppTheme.colors.TextTertiary
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
-                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                            focusedTextColor = AppTheme.colors.TextSecondary,
-                            unfocusedTextColor = AppTheme.colors.TextSecondary
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { showAddDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.TextTertiary
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                "Cancelar",
-                                color = AppTheme.colors.TextPrimary
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                if (newSemestreNombre.isNotBlank() && currentUser != null) {
-                                    val newSemestre = Semestre(nombre = newSemestreNombre)
-                                    dataViewModel.createSemestre(currentUser!!.uid, newSemestre)
-                                    newSemestreNombre = ""
-                                    showAddDialog = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.ButtonPrimary
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = newSemestreNombre.isNotBlank()
-                        ) {
-                            Text(
-                                "Añadir",
-                                color = AppTheme.colors.TextPrimary
-                            )
-                        }
-                    }
+                    Text("Añadir", color = AppTheme.colors.TextPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
-        }
+        )
     }
 
     // Dialog para editar nombre
     if (showEditDialog && editingSemestre != null) {
-        Dialog(onDismissRequest = { showEditDialog = false }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = AppTheme.colors.CardBackground
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Editar Nombre",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Editar Nombre",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.TextSecondary,
-                        modifier = Modifier.padding(bottom = 16.dp)
+            },
+            text = {
+                OutlinedTextField(
+                    value = tempNombre,
+                    onValueChange = { tempNombre = it },
+                    label = { Text("Nombre del semestre", color = AppTheme.colors.TextPrimary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppTheme.colors.ButtonPrimary,
+                        focusedLabelColor = AppTheme.colors.ButtonPrimary,
+                        focusedTextColor = AppTheme.colors.TextPrimary,
+                        unfocusedTextColor = AppTheme.colors.TextPrimary
                     )
-
-                    OutlinedTextField(
-                        value = tempNombre,
-                        onValueChange = { tempNombre = it },
-                        label = {
-                            Text(
-                                "Nombre del semestre",
-                                color = AppTheme.colors.TextTertiary
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AppTheme.colors.ButtonPrimary,
-                            focusedLabelColor = AppTheme.colors.ButtonPrimary,
-                            focusedTextColor = AppTheme.colors.TextSecondary,
-                            unfocusedTextColor = AppTheme.colors.TextSecondary
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { showEditDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.TextTertiary
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                "Cancelar",
-                                color = AppTheme.colors.TextPrimary
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                if (tempNombre.isNotBlank() && currentUser != null && editingSemestre != null) {
-                                    val updatedSemestre = editingSemestre!!.copy(nombre = tempNombre)
-                                    dataViewModel.updateSemestre(currentUser!!.uid, updatedSemestre)
-                                    showEditDialog = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.ButtonPrimary
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = tempNombre.isNotBlank()
-                        ) {
-                            Text(
-                                "Guardar",
-                                color = AppTheme.colors.TextPrimary
-                            )
-                        }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (tempNombre.isNotBlank() && currentUser != null && editingSemestre != null) {
+                        val updatedSemestre = editingSemestre!!.copy(nombre = tempNombre)
+                        dataViewModel.updateSemestre(currentUser!!.uid, updatedSemestre)
+                        showEditDialog = false
                     }
+                }) {
+                    Text("Guardar", color = AppTheme.colors.TextPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
-        }
+        )
     }
 
     // Diálogo para eliminar semestre
     if (showDeleteDialog && editingSemestre != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar semestre") },
-            text = { Text("¿Estás seguro de que deseas eliminar el semestre '${editingSemestre?.nombre}'? Esta acción no se puede deshacer.") },
+            containerColor = AppTheme.colors.BackgroundPrimary,
+            title = {
+                Text(
+                    text = "Eliminar semestre",
+                    color = AppTheme.colors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Estás seguro de que deseas eliminar el semestre '${editingSemestre?.nombre}'? Esta acción no se puede deshacer.",
+                    color = AppTheme.colors.TextPrimary
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     currentUser?.let { user ->
@@ -418,7 +347,7 @@ fun ScreenSemestres(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = AppTheme.colors.TextPrimary)
                 }
             }
         )
