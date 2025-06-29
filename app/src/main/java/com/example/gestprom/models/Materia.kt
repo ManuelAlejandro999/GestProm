@@ -2,7 +2,7 @@ package com.example.gestprom.models
 
 // Data class para las materias
 data class Materia(
-    val nombre: String,
-    val tipoCalificacion: String,
-    val calificacion: Number
+    val id: String = "",
+    val nombre: String = "",
+    val calificacionObjetivo: Double = 0.0
 )

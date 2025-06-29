@@ -24,21 +24,38 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gestprom.R
 import com.example.gestprom.ui.theme.AppTheme
+import com.example.gestprom.viewmodels.AuthState
+import com.example.gestprom.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenLogin(
-    onLoginClick: (String, String) -> Unit = { _, _ -> },
+    authViewModel: AuthViewModel = viewModel(),
     onRegistrarClick: () -> Unit = {},
-    onAtrasClick: () -> Unit = {}
+    onAtrasClick: () -> Unit = {},
+    onLoginSuccess: () -> Unit = {}
 ) {
-    var matricula by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var showError by remember { mutableStateOf(false) }
+    
+    val authState by authViewModel.authState.collectAsState()
+
+    // Handle authentication state changes
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Authenticated -> {
+                onLoginSuccess()
+            }
+            is AuthState.Error -> {
+                // Error is handled in the UI
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -104,21 +121,21 @@ fun ScreenLogin(
 
             // Campo de Matrícula
             OutlinedTextField(
-                value = matricula,
+                value = email,
                 onValueChange = {
-                    matricula = it
-                    showError = false
+                    email = it
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
-                        "Matrícula",
+                        "Email",
                         color = Color.White.copy(alpha = 0.8f)
                     )
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Matrícula",
+                        contentDescription = "Email",
                         tint = Color.White.copy(alpha = 0.8f)
                     )
                 },
@@ -142,7 +159,7 @@ fun ScreenLogin(
                 value = password,
                 onValueChange = {
                     password = it
-                    showError = false
+                    authViewModel.clearError()
                 },
                 label = {
                     Text(
@@ -185,9 +202,9 @@ fun ScreenLogin(
             )
 
             // Mensaje de error
-            if (showError) {
+            if (authState is AuthState.Error) {
                 Text(
-                    text = "Credenciales incorrectas",
+                    text = (authState as AuthState.Error).message,
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -197,17 +214,8 @@ fun ScreenLogin(
             // Botón de Login
             Button(
                 onClick = {
-                    if (matricula.isNotBlank() && password.isNotBlank()) {
-                        isLoading = true
-                        // Simulamos validación básica
-                        if (matricula.length >= 6 && password.length >= 4) {
-                            onLoginClick(matricula, password)
-                        } else {
-                            showError = true
-                            isLoading = false
-                        }
-                    } else {
-                        showError = true
+                    if (email.isNotBlank() && password.isNotBlank()) {
+                        authViewModel.login(email, password)
                     }
                 },
                 modifier = Modifier
@@ -217,9 +225,9 @@ fun ScreenLogin(
                     containerColor = AppTheme.colors.ButtonPrimary
                 ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !isLoading && matricula.isNotBlank() && password.isNotBlank()
+                enabled = authState !is AuthState.Loading && email.isNotBlank() && password.isNotBlank()
             ) {
-                if (isLoading) {
+                if (authState is AuthState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         color = Color.White,
@@ -231,6 +239,25 @@ fun ScreenLogin(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Botón de debug temporal
+            if (authState is AuthState.Error) {
+                TextButton(
+                    onClick = {
+                        // Mostrar información de debug
+                        println("Debug: Intentando login con email: $email")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Debug: Verificar credenciales",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -265,7 +292,7 @@ fun ScreenLogin(
 
             // Texto informativo
             Text(
-                text = "Usa tu matrícula institucional y contraseña",
+                text = "Usa tu email y contraseña registrados",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
