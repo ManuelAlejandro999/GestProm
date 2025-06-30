@@ -23,10 +23,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 
+// Servicio para manejar notificaciones de evaluaciones
 class NotificationService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val TAG = "NotificationService"
 
+    // Función principal del worker
     override suspend fun doWork(): Result {
         Log.d(TAG, "=== INICIANDO WORKER DE NOTIFICACIÓN ===")
         
@@ -83,6 +85,7 @@ class NotificationService(context: Context, params: WorkerParameters) : Coroutin
         }
     }
 
+    // Muestra la notificación al usuario
     private fun mostrarNotificacion(nombreMateria: String, nombreEvaluacion: String, calificacionNecesaria: Double, materia: Materia) {
         Log.d(TAG, "Iniciando mostrarNotificacion - Materia: $nombreMateria, Evaluación: $nombreEvaluacion")
         
@@ -168,6 +171,7 @@ class NotificationScheduler(private val context: Context) {
     private val workManager = androidx.work.WorkManager.getInstance(context)
     private val TAG = "NotificationScheduler"
 
+    // Programa la notificación para el día de la evaluación
     fun programarNotificacion(evaluacion: Evaluacion, materia: Materia, semestreId: String) {
         Log.d(TAG, "=== PROGRAMANDO NOTIFICACIÓN ===")
         Log.d(TAG, "Evaluación: ${evaluacion.nombre}, Fecha: ${evaluacion.fecha}")
@@ -325,6 +329,7 @@ class NotificationScheduler(private val context: Context) {
         Log.d(TAG, "Notificación directa enviada con ID: $notificationId")
     }
 
+    // Cancela la notificación programada
     fun cancelarNotificacion(evaluacionId: String) {
         Log.d(TAG, "Cancelando notificación para evaluación: $evaluacionId")
         workManager.cancelAllWorkByTag(evaluacionId)
