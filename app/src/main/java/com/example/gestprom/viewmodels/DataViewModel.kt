@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+// ViewModel principal para manejar datos de la app
 class DataViewModel : ViewModel() {
     private val firestoreService = FirestoreService()
     private var notificationScheduler: NotificationScheduler? = null
@@ -929,6 +930,7 @@ class DataViewModel : ViewModel() {
         }
     }
 
+    // Verifica si dos fechas son el mismo día
     private fun esMismoDia(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)

@@ -44,14 +44,14 @@ fun ScreenLogin(
     
     val authState by authViewModel.authState.collectAsState()
 
-    // Handle authentication state changes
+    // Maneja cambios de estado de autenticación
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
                 onLoginSuccess()
             }
             is AuthState.Error -> {
-                // Error is handled in the UI
+                // El error se muestra en la UI
             }
             else -> {}
         }

@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Solicitar permisos de notificación
+        // Solicita permisos de notificación
         requestNotificationPermission()
         
         setContent {
@@ -45,15 +45,12 @@ class MainActivity : ComponentActivity() {
                     val authViewModel: AuthViewModel = viewModel()
                     val dataViewModel: DataViewModel = viewModel()
                     
-                    // Inicializar notificaciones de manera segura
+                    // Inicializa notificaciones
                     LaunchedEffect(Unit) {
                         try {
-                            println("DEBUG: MainActivity - Iniciando inicialización de notificaciones...")
                             dataViewModel.initializeNotifications(this@MainActivity)
-                            println("DEBUG: MainActivity - Inicialización de notificaciones completada")
                         } catch (e: Exception) {
-                            // Manejar error de inicialización
-                            println("DEBUG: MainActivity - ERROR al inicializar notificaciones: ${e.message}")
+                            // Error al inicializar notificaciones
                         }
                     }
                     
